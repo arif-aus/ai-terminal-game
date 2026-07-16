@@ -1,43 +1,46 @@
 import game
 
 
-def reset_player() -> None:
-    """Reset player position to origin before each test."""
+def reset_game() -> None:
+    """Reset all game state before each test."""
     game.player_pos[0] = 0
     game.player_pos[1] = 0
+    game.score = 0
+    game.collectible_pos[0] = 0
+    game.collectible_pos[1] = 1
 
 
 # --- Movement Tests ---
 
 
 def test_move_right() -> None:
-    reset_player()
+    reset_game()
     game.move_player("d")
     assert game.player_pos == [0, 1]
 
 
 def test_move_down() -> None:
-    reset_player()
+    reset_game()
     game.move_player("s")
     assert game.player_pos == [1, 0]
 
 
 def test_move_left_from_middle() -> None:
-    reset_player()
+    reset_game()
     game.player_pos[1] = 2
     game.move_player("a")
     assert game.player_pos == [0, 1]
 
 
 def test_move_up_from_middle() -> None:
-    reset_player()
+    reset_game()
     game.player_pos[0] = 2
     game.move_player("w")
     assert game.player_pos == [1, 0]
 
 
 def test_multiple_moves() -> None:
-    reset_player()
+    reset_game()
     game.move_player("d")
     game.move_player("d")
     game.move_player("s")
@@ -49,33 +52,33 @@ def test_multiple_moves() -> None:
 
 
 def test_cannot_move_left_from_edge() -> None:
-    reset_player()
+    reset_game()
     game.move_player("a")
     assert game.player_pos == [0, 0]
 
 
 def test_cannot_move_up_from_edge() -> None:
-    reset_player()
+    reset_game()
     game.move_player("w")
     assert game.player_pos == [0, 0]
 
 
 def test_cannot_move_right_from_edge() -> None:
-    reset_player()
+    reset_game()
     game.player_pos[1] = game.GRID_SIZE - 1
     game.move_player("d")
     assert game.player_pos[1] == game.GRID_SIZE - 1
 
 
 def test_cannot_move_down_from_edge() -> None:
-    reset_player()
+    reset_game()
     game.player_pos[0] = game.GRID_SIZE - 1
     game.move_player("s")
     assert game.player_pos[0] == game.GRID_SIZE - 1
 
 
 def test_cannot_move_off_bottom_right_corner() -> None:
-    reset_player()
+    reset_game()
     game.player_pos[0] = game.GRID_SIZE - 1
     game.player_pos[1] = game.GRID_SIZE - 1
     game.move_player("s")
@@ -87,21 +90,21 @@ def test_cannot_move_off_bottom_right_corner() -> None:
 
 
 def test_draw_grid_contains_player(capsys) -> None:
-    reset_player()
+    reset_game()
     game.draw_grid()
     output = capsys.readouterr().out
     assert " P " in output
 
 
 def test_draw_grid_contains_dots(capsys) -> None:
-    reset_player()
+    reset_game()
     game.draw_grid()
     output = capsys.readouterr().out
     assert " . " in output
 
 
 def test_draw_grid_contains_dividers(capsys) -> None:
-    reset_player()
+    reset_game()
     game.draw_grid()
     output = capsys.readouterr().out
     assert "---" in output
@@ -109,7 +112,7 @@ def test_draw_grid_contains_dividers(capsys) -> None:
 
 
 def test_draw_grid_shows_player_at_new_position(capsys) -> None:
-    reset_player()
+    reset_game()
     game.move_player("d")
     game.move_player("s")
     game.draw_grid()
@@ -121,3 +124,80 @@ def test_draw_grid_shows_player_at_new_position(capsys) -> None:
     assert len(grid_rows) == game.GRID_SIZE
     # Row 1 (index 1) should contain the player
     assert " P " in grid_rows[1]
+
+
+# --- Collectible Tests ---
+
+
+def test_collectible_not_on_player() -> None:
+    """Spawn should never place the collectible on the player."""
+    reset_game()
+    for _ in range(20):
+        game.spawn_collectible()
+        assert game.collectible_pos != game.player_pos
+
+
+def test_spawn_collectible_within_grid() -> None:
+    """Collectible should always be inside the grid bounds."""
+    reset_game()
+    for _ in range(20):
+        game.spawn_collectible()
+        assert 0 <= game.collectible_pos[0] < game.GRID_SIZE
+        assert 0 <= game.collectible_pos[1] < game.GRID_SIZE
+
+
+def test_draw_grid_contains_collectible(capsys) -> None:
+    reset_game()
+    game.draw_grid()
+    output = capsys.readouterr().out
+    assert " C " in output
+
+
+# --- Scoring Tests ---
+
+
+def test_collect_increases_score() -> None:
+    reset_game()
+    game.collectible_pos[0] = 0
+    game.collectible_pos[1] = 1  # Place collectible to the right of player
+    game.move_player("d")  # Move onto collectible
+    assert game.score == 1
+
+
+def test_collect_respawns_collectible() -> None:
+    reset_game()
+    game.collectible_pos[0] = 0
+    game.collectible_pos[1] = 1
+    old_pos = game.collectible_pos[:]
+    game.move_player("d")
+    # Collectible should have moved to a new position
+    assert game.collectible_pos != old_pos
+
+
+def test_collect_multiple_times() -> None:
+    reset_game()
+    for i in range(3):
+        game.collectible_pos[0] = 0
+        game.collectible_pos[1] = 1
+        game.move_player("d")  # Collect at (0,1)
+        # Move collectible far away to avoid accidental collection on return
+        game.collectible_pos[0] = game.GRID_SIZE - 1
+        game.collectible_pos[1] = game.GRID_SIZE - 1
+        game.move_player("a")  # Move back to (0,0)
+    assert game.score == 3
+
+
+def test_score_displays_in_grid(capsys) -> None:
+    reset_game()
+    game.score = 7
+    game.draw_grid()
+    output = capsys.readouterr().out
+    assert "7/10" in output
+
+
+def test_no_score_when_missing_collectible() -> None:
+    reset_game()
+    game.collectible_pos[0] = 2
+    game.collectible_pos[1] = 2  # Collectible far away
+    game.move_player("d")  # Move to (0, 1) — not the collectible
+    assert game.score == 0

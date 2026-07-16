@@ -5,6 +5,15 @@ import random
 GRID_SIZE = 5
 WIN_SCORE = 10
 
+# Theme
+GAME_NAME = "Danger Game"
+STORY_INTRO = "Dragon's Den"
+PLAYER_EMOJI = "🧙"
+COLLECTIBLE_EMOJI = "💎"
+HAZARD_EMOJI = "🐉"
+WIN_MESSAGE = "Winner"
+LOSE_MESSAGE = "Try next time"
+
 # Game state
 player_pos = [0, 0]
 score = 0
@@ -48,7 +57,7 @@ def draw_grid() -> None:
     """Draw the 5x5 grid with all game elements."""
     os.system("clear" if os.name != "nt" else "cls")
 
-    print("=== Text Adventure ===")
+    print(f"=== {GAME_NAME} ===")
     print(f"Score: {score}/{WIN_SCORE}")
     print("Type 'quit' to exit.\n")
 
@@ -56,11 +65,11 @@ def draw_grid() -> None:
         row_display = ""
         for col in range(GRID_SIZE):
             if row == player_pos[0] and col == player_pos[1]:
-                row_display += " P "
+                row_display += f" {PLAYER_EMOJI} "
             elif row == collectible_pos[0] and col == collectible_pos[1]:
-                row_display += " C "
+                row_display += f" {COLLECTIBLE_EMOJI} "
             elif row == hazard_pos[0] and col == hazard_pos[1]:
-                row_display += " X "
+                row_display += f" {HAZARD_EMOJI} "
             else:
                 row_display += " . "
             if col < GRID_SIZE - 1:
@@ -115,11 +124,11 @@ def play_round() -> str:
             hit_hazard = move_player(user_input)
             if hit_hazard:
                 draw_grid()
-                print("Game Over!")
+                print(LOSE_MESSAGE)
                 return "lose"
             if score >= WIN_SCORE:
                 draw_grid()
-                print(f"You collected {WIN_SCORE} items! You win!")
+                print(WIN_MESSAGE)
                 return "win"
         else:
             print(f"Unknown command: '{user_input}'. Use W/A/S/D to move.")
@@ -128,9 +137,10 @@ def play_round() -> str:
 
 def main() -> None:
     """Main game loop with play again support."""
-    print("Welcome to the Grid Game!")
-    print("You are 'P'. Collect 'C' items to score!")
-    print(f"Collect {WIN_SCORE} items to win! Avoid the 'X' hazard!\n")
+    print(f"=== {STORY_INTRO} ===")
+    print(f"Welcome to {GAME_NAME}!")
+    print(f"You are {PLAYER_EMOJI}. Collect {COLLECTIBLE_EMOJI} items to score!")
+    print(f"Collect {WIN_SCORE} items to win! Avoid the {HAZARD_EMOJI} hazard!\n")
     input("Press Enter to start...")
 
     while True:

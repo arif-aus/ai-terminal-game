@@ -96,7 +96,7 @@ def test_draw_grid_contains_player(capsys) -> None:
     reset_game()
     game.draw_grid()
     output = capsys.readouterr().out
-    assert " P " in output
+    assert game.PLAYER_EMOJI in output
 
 
 def test_draw_grid_contains_dots(capsys) -> None:
@@ -120,13 +120,11 @@ def test_draw_grid_shows_player_at_new_position(capsys) -> None:
     game.move_player("s")
     game.draw_grid()
     output = capsys.readouterr().out
-    # Player should now be at (1, 1) — check the second row contains P
     lines = output.strip().split("\n")
-    # The grid rows start after the header lines
-    grid_rows = [line for line in lines if "|" in line or (" P " in line or " . " in line)]
+    grid_rows = [line for line in lines if "|" in line or game.PLAYER_EMOJI in line or " . " in line]
     assert len(grid_rows) == game.GRID_SIZE
     # Row 1 (index 1) should contain the player
-    assert " P " in grid_rows[1]
+    assert game.PLAYER_EMOJI in grid_rows[1]
 
 
 # --- Collectible Tests ---
@@ -153,7 +151,7 @@ def test_draw_grid_contains_collectible(capsys) -> None:
     reset_game()
     game.draw_grid()
     output = capsys.readouterr().out
-    assert " C " in output
+    assert game.COLLECTIBLE_EMOJI in output
 
 
 # --- Scoring Tests ---
@@ -238,7 +236,7 @@ def test_draw_grid_contains_hazard(capsys) -> None:
     reset_game()
     game.draw_grid()
     output = capsys.readouterr().out
-    assert " X " in output
+    assert game.HAZARD_EMOJI in output
 
 
 def test_hitting_hazard_returns_true() -> None:

@@ -1,18 +1,25 @@
 import os
 import random
 
-# Player starting position (row, col)
-player_pos = [0, 0]
-
+# Game constants
 GRID_SIZE = 5
 WIN_SCORE = 10
 
-# Collectible state
+# Game state
+player_pos = [0, 0]
 score = 0
 collectible_pos = [0, 0]
-
-# Hazard state
 hazard_pos = [0, 0]
+
+
+def reset_game() -> None:
+    """Reset all game state for a new game."""
+    global score
+    player_pos[0] = 0
+    player_pos[1] = 0
+    score = 0
+    spawn_collectible()
+    spawn_hazard()
 
 
 def spawn_collectible() -> None:
@@ -38,8 +45,7 @@ def spawn_hazard() -> None:
 
 
 def draw_grid() -> None:
-    """Draw the 5x5 grid with the player and collectible."""
-    # Clear the terminal for a cleaner look
+    """Draw the 5x5 grid with all game elements."""
     os.system("clear" if os.name != "nt" else "cls")
 
     print("=== Text Adventure ===")
@@ -47,21 +53,19 @@ def draw_grid() -> None:
     print("Type 'quit' to exit.\n")
 
     for row in range(GRID_SIZE):
-        # Print each row of the grid
         row_display = ""
         for col in range(GRID_SIZE):
             if row == player_pos[0] and col == player_pos[1]:
-                row_display += " P "  # Player position
+                row_display += " P "
             elif row == collectible_pos[0] and col == collectible_pos[1]:
-                row_display += " C "  # Collectible
+                row_display += " C "
             elif row == hazard_pos[0] and col == hazard_pos[1]:
-                row_display += " X "  # Hazard
+                row_display += " X "
             else:
-                row_display += " . "  # Empty cell
+                row_display += " . "
             if col < GRID_SIZE - 1:
                 row_display += "|"
         print(row_display)
-        # Print horizontal divider between rows (but not after the last one)
         if row < GRID_SIZE - 1:
             print("---" * GRID_SIZE + "--")
 
@@ -74,24 +78,21 @@ def move_player(direction: str) -> bool:
     row, col = player_pos[0], player_pos[1]
 
     if direction == "w":
-        row -= 1  # Up
+        row -= 1
     elif direction == "s":
-        row += 1  # Down
+        row += 1
     elif direction == "a":
-        col -= 1  # Left
+        col -= 1
     elif direction == "d":
-        col += 1  # Right
+        col += 1
 
-    # Only move if the new position is inside the grid
     if 0 <= row < GRID_SIZE and 0 <= col < GRID_SIZE:
         player_pos[0] = row
         player_pos[1] = col
 
-        # Check if player landed on the hazard
         if player_pos[0] == hazard_pos[0] and player_pos[1] == hazard_pos[1]:
             return True
 
-        # Check if player landed on the collectible
         if player_pos[0] == collectible_pos[0] and player_pos[1] == collectible_pos[1]:
             global score
             score += 1
@@ -100,36 +101,49 @@ def move_player(direction: str) -> bool:
     return False
 
 
-def main() -> None:
-    """Main game loop."""
-    print("Welcome to the Grid Game!")
-    print("You are 'P'. Collect 'C' items to score!")
-    print(f"Collect {WIN_SCORE} items to win!\n")
-    input("Press Enter to start...")
-
-    spawn_collectible()
-    spawn_hazard()
+def play_round() -> str:
+    """Run a single round of the game. Returns 'win', 'lose', or 'quit'."""
+    reset_game()
 
     while True:
         draw_grid()
         user_input = input("Command (W/A/S/D to move, 'quit' to exit): ").strip().lower()
 
         if user_input == "quit":
-            print("Thanks for playing! See ya later!")
-            break
+            return "quit"
         elif user_input in ["w", "a", "s", "d"]:
             hit_hazard = move_player(user_input)
             if hit_hazard:
                 draw_grid()
                 print("Game Over!")
-                break
+                return "lose"
             if score >= WIN_SCORE:
                 draw_grid()
                 print(f"You collected {WIN_SCORE} items! You win!")
-                break
+                return "win"
         else:
             print(f"Unknown command: '{user_input}'. Use W/A/S/D to move.")
             input("Press Enter to continue...")
+
+
+def main() -> None:
+    """Main game loop with play again support."""
+    print("Welcome to the Grid Game!")
+    print("You are 'P'. Collect 'C' items to score!")
+    print(f"Collect {WIN_SCORE} items to win! Avoid the 'X' hazard!\n")
+    input("Press Enter to start...")
+
+    while True:
+        result = play_round()
+
+        if result == "quit":
+            print("Thanks for playing! See ya later!")
+            break
+
+        play_again = input("Play again? (y/n): ").strip().lower()
+        if play_again != "y":
+            print("Thanks for playing! See ya later!")
+            break
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import game
+from unittest.mock import patch
 
 
 def reset_game() -> None:
@@ -272,4 +273,92 @@ def test_hazard_stops_score_increment() -> None:
     game.collectible_pos[0] = 0
     game.collectible_pos[1] = 1  # Same spot as hazard — hazard takes priority
     game.move_player("d")
+    assert game.score == 0
+
+
+# --- Reset Tests ---
+
+
+def test_reset_game_moves_player_to_origin() -> None:
+    reset_game()
+    game.move_player("d")
+    game.move_player("s")
+    game.reset_game()
+    assert game.player_pos == [0, 0]
+
+
+def test_reset_game_resets_score() -> None:
+    reset_game()
+    game.score = 5
+    game.reset_game()
+    assert game.score == 0
+
+
+def test_reset_game_spawns_new_collectible() -> None:
+    reset_game()
+    old_collectible = game.collectible_pos[:]
+    # Move player to collectible, collect it, then reset
+    game.collectible_pos[0] = 0
+    game.collectible_pos[1] = 1
+    game.move_player("d")
+    game.reset_game()
+    # After reset, collectible should exist and not be on the player
+    assert game.collectible_pos != game.player_pos
+
+
+def test_reset_game_spawns_new_hazard() -> None:
+    reset_game()
+    game.hazard_pos[0] = 0
+    game.hazard_pos[1] = 1
+    game.reset_game()
+    # After reset, hazard should exist and not be on the player or collectible
+    assert game.hazard_pos != game.player_pos
+    assert game.hazard_pos != game.collectible_pos
+
+
+# --- Play Round Tests ---
+
+
+def test_play_round_returns_quit() -> None:
+    """Quitting during a round should return 'quit'."""
+    reset_game()
+    with patch("builtins.input", return_value="quit"):
+        result = game.play_round()
+    assert result == "quit"
+
+
+def test_play_round_returns_lose_on_hazard() -> None:
+    """Hitting the hazard should return 'lose'."""
+    reset_game()
+    game.hazard_pos[0] = 0
+    game.hazard_pos[1] = 1  # Right next to player
+    with patch("builtins.input", side_effect=["d"]), \
+         patch.object(game, "reset_game"):
+        result = game.play_round()
+    assert result == "lose"
+
+
+def test_play_round_returns_win_on_score() -> None:
+    """Reaching WIN_SCORE should return 'win'."""
+    reset_game()
+    game.score = game.WIN_SCORE - 1
+    game.collectible_pos[0] = 0
+    game.collectible_pos[1] = 1  # Collectible next to player
+    with patch("builtins.input", side_effect=["d"]), \
+         patch.object(game, "reset_game"):
+        result = game.play_round()
+    assert result == "win"
+
+
+def test_play_round_resets_state() -> None:
+    """Starting a new round should reset the player to origin."""
+    reset_game()
+    game.player_pos[0] = 3
+    game.player_pos[1] = 3
+    game.score = 9
+    with patch("builtins.input", return_value="quit"):
+        game.play_round()
+    # play_round calls reset_game at the start, so state is reset
+    # (then quit returns immediately — but reset already happened)
+    assert game.player_pos == [0, 0]
     assert game.score == 0

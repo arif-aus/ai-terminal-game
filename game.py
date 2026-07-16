@@ -11,6 +11,9 @@ WIN_SCORE = 10
 score = 0
 collectible_pos = [0, 0]
 
+# Hazard state
+hazard_pos = [0, 0]
+
 
 def spawn_collectible() -> None:
     """Place the collectible at a random position that isn't the player."""
@@ -20,6 +23,17 @@ def spawn_collectible() -> None:
         if [row, col] != player_pos:
             collectible_pos[0] = row
             collectible_pos[1] = col
+            break
+
+
+def spawn_hazard() -> None:
+    """Place the hazard at a random position that isn't the player or collectible."""
+    while True:
+        row = random.randint(0, GRID_SIZE - 1)
+        col = random.randint(0, GRID_SIZE - 1)
+        if [row, col] != player_pos and [row, col] != collectible_pos:
+            hazard_pos[0] = row
+            hazard_pos[1] = col
             break
 
 
@@ -40,6 +54,8 @@ def draw_grid() -> None:
                 row_display += " P "  # Player position
             elif row == collectible_pos[0] and col == collectible_pos[1]:
                 row_display += " C "  # Collectible
+            elif row == hazard_pos[0] and col == hazard_pos[1]:
+                row_display += " X "  # Hazard
             else:
                 row_display += " . "  # Empty cell
             if col < GRID_SIZE - 1:
@@ -52,8 +68,9 @@ def draw_grid() -> None:
     print()
 
 
-def move_player(direction: str) -> None:
-    """Move the player in the given direction if within bounds."""
+def move_player(direction: str) -> bool:
+    """Move the player in the given direction if within bounds.
+    Returns True if the player hit the hazard."""
     row, col = player_pos[0], player_pos[1]
 
     if direction == "w":
@@ -70,11 +87,17 @@ def move_player(direction: str) -> None:
         player_pos[0] = row
         player_pos[1] = col
 
+        # Check if player landed on the hazard
+        if player_pos[0] == hazard_pos[0] and player_pos[1] == hazard_pos[1]:
+            return True
+
         # Check if player landed on the collectible
         if player_pos[0] == collectible_pos[0] and player_pos[1] == collectible_pos[1]:
             global score
             score += 1
             spawn_collectible()
+
+    return False
 
 
 def main() -> None:
@@ -85,6 +108,7 @@ def main() -> None:
     input("Press Enter to start...")
 
     spawn_collectible()
+    spawn_hazard()
 
     while True:
         draw_grid()
@@ -94,7 +118,11 @@ def main() -> None:
             print("Thanks for playing! See ya later!")
             break
         elif user_input in ["w", "a", "s", "d"]:
-            move_player(user_input)
+            hit_hazard = move_player(user_input)
+            if hit_hazard:
+                draw_grid()
+                print("Game Over!")
+                break
             if score >= WIN_SCORE:
                 draw_grid()
                 print(f"You collected {WIN_SCORE} items! You win!")

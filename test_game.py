@@ -8,6 +8,8 @@ def reset_game() -> None:
     game.score = 0
     game.collectible_pos[0] = 0
     game.collectible_pos[1] = 1
+    game.hazard_pos[0] = 4
+    game.hazard_pos[1] = 4
 
 
 # --- Movement Tests ---
@@ -200,4 +202,74 @@ def test_no_score_when_missing_collectible() -> None:
     game.collectible_pos[0] = 2
     game.collectible_pos[1] = 2  # Collectible far away
     game.move_player("d")  # Move to (0, 1) — not the collectible
+    assert game.score == 0
+
+
+# --- Hazard Tests ---
+
+
+def test_hazard_not_on_player() -> None:
+    """Spawn should never place the hazard on the player."""
+    reset_game()
+    for _ in range(20):
+        game.spawn_hazard()
+        assert game.hazard_pos != game.player_pos
+
+
+def test_hazard_not_on_collectible() -> None:
+    """Spawn should never place the hazard on the collectible."""
+    reset_game()
+    for _ in range(20):
+        game.spawn_hazard()
+        assert game.hazard_pos != game.collectible_pos
+
+
+def test_spawn_hazard_within_grid() -> None:
+    """Hazard should always be inside the grid bounds."""
+    reset_game()
+    for _ in range(20):
+        game.spawn_hazard()
+        assert 0 <= game.hazard_pos[0] < game.GRID_SIZE
+        assert 0 <= game.hazard_pos[1] < game.GRID_SIZE
+
+
+def test_draw_grid_contains_hazard(capsys) -> None:
+    reset_game()
+    game.draw_grid()
+    output = capsys.readouterr().out
+    assert " X " in output
+
+
+def test_hitting_hazard_returns_true() -> None:
+    reset_game()
+    game.hazard_pos[0] = 0
+    game.hazard_pos[1] = 1  # Hazard to the right of player
+    result = game.move_player("d")
+    assert result is True
+
+
+def test_hazard_moves_player() -> None:
+    reset_game()
+    game.hazard_pos[0] = 0
+    game.hazard_pos[1] = 1
+    game.move_player("d")
+    assert game.player_pos == [0, 1]
+
+
+def test_not_hitting_hazard_returns_false() -> None:
+    reset_game()
+    game.hazard_pos[0] = 4
+    game.hazard_pos[1] = 4  # Hazard far away
+    result = game.move_player("d")
+    assert result is False
+
+
+def test_hazard_stops_score_increment() -> None:
+    """Player should not score if they land on the hazard."""
+    reset_game()
+    game.hazard_pos[0] = 0
+    game.hazard_pos[1] = 1
+    game.collectible_pos[0] = 0
+    game.collectible_pos[1] = 1  # Same spot as hazard — hazard takes priority
+    game.move_player("d")
     assert game.score == 0
